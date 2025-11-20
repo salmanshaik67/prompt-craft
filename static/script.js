@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusIndicator = document.querySelector('.status-indicator');
     const copyBtn = document.getElementById('copyBtn');
 
+    // Enhancers list (ported from Python backend)
+    const enhancers = [
+        "highly detailed", "futuristic style", "cinematic lighting",
+        "8k resolution", "unreal engine 5 render", "cyberpunk aesthetics",
+        "hyper-realistic", "volumetric fog", "neon accents"
+    ];
+
     craftBtn.addEventListener('click', async () => {
         const text = userPrompt.value.trim();
         if (!text) return;
@@ -17,36 +24,32 @@ document.addEventListener('DOMContentLoaded', () => {
         craftBtn.disabled = true;
         craftBtn.style.opacity = "0.5";
 
-        try {
-            const response = await fetch('/craft', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt: text })
-            });
+        // Simulate processing delay
+        setTimeout(() => {
+            // Logic ported from Python to JS for Static Hosting
+            let crafted = text;
 
-            const data = await response.json();
-            
-            // Simulate processing delay for effect
-            setTimeout(() => {
-                typeWriter(data.crafted_prompt);
-                statusIndicator.textContent = "COMPLETE";
-                statusIndicator.style.color = "#00f3ff";
-                statusIndicator.style.borderColor = "#00f3ff";
-                craftBtn.disabled = false;
-                craftBtn.style.opacity = "1";
-            }, 800);
+            // Basic structure enhancement
+            const lowerCrafted = crafted.toLowerCase();
+            if (!lowerCrafted.includes("act as") && !lowerCrafted.includes("you are a")) {
+                crafted = "Act as an expert creative assistant. " + crafted;
+            }
 
-        } catch (error) {
-            console.error('Error:', error);
-            outputContent.textContent = "SYSTEM ERROR: Connection Lost.";
-            statusIndicator.textContent = "ERROR";
-            statusIndicator.style.color = "red";
-            statusIndicator.style.borderColor = "red";
+            // Add random aesthetic enhancers if short
+            if (crafted.length < 50) {
+                // Pick 2 random enhancers
+                const shuffled = enhancers.sort(() => 0.5 - Math.random());
+                const selected = shuffled.slice(0, 2);
+                crafted += ", " + selected.join(", ");
+            }
+
+            typeWriter(crafted);
+            statusIndicator.textContent = "COMPLETE";
+            statusIndicator.style.color = "#00f3ff";
+            statusIndicator.style.borderColor = "#00f3ff";
             craftBtn.disabled = false;
             craftBtn.style.opacity = "1";
-        }
+        }, 800);
     });
 
     // Typewriter Effect
