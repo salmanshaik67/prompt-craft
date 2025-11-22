@@ -1,76 +1,113 @@
 document.addEventListener('DOMContentLoaded', () => {
     const craftBtn = document.getElementById('craftBtn');
     const userPrompt = document.getElementById('userPrompt');
-    const outputContent = document.getElementById('outputContent');
-    const statusIndicator = document.querySelector('.status-indicator');
-    const copyBtn = document.getElementById('copyBtn');
 
-    // Enhancers list (ported from Python backend)
-    const enhancers = [
-        "highly detailed", "futuristic style", "cinematic lighting",
-        "8k resolution", "unreal engine 5 render", "cyberpunk aesthetics",
-        "hyper-realistic", "volumetric fog", "neon accents"
-    ];
+    const refinedContent = document.getElementById('refinedContent');
+    const statusRefined = document.getElementById('statusRefined');
+    const copyRefinedBtn = document.getElementById('copyRefinedBtn');
+
+    const gptContent = document.getElementById('gptContent');
+    const statusGpt = document.getElementById('statusGpt');
+    const copyGptBtn = document.getElementById('copyGptBtn');
 
     craftBtn.addEventListener('click', async () => {
         const text = userPrompt.value.trim();
         if (!text) return;
 
         // UI State: Loading
-        statusIndicator.textContent = "PROCESSING...";
-        statusIndicator.style.color = "#bc13fe";
-        statusIndicator.style.borderColor = "#bc13fe";
-        outputContent.textContent = "";
-        craftBtn.disabled = true;
-        craftBtn.style.opacity = "0.5";
+        setLoadingState(true);
+        refinedContent.textContent = "";
+        gptContent.textContent = "";
 
-        // Simulate processing delay
-        setTimeout(() => {
-            // Logic ported from Python to JS for Static Hosting
-            let crafted = text;
+        try {
+            const response = await fetch('/craft', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: text }),
+            });
 
-            // Basic structure enhancement
-            const lowerCrafted = crafted.toLowerCase();
-            if (!lowerCrafted.includes("act as") && !lowerCrafted.includes("you are a")) {
-                crafted = "Act as an expert creative assistant. " + crafted;
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
             }
 
-            // Add random aesthetic enhancers if short
-            if (crafted.length < 50) {
-                // Pick 2 random enhancers
-                const shuffled = enhancers.sort(() => 0.5 - Math.random());
-                const selected = shuffled.slice(0, 2);
-                crafted += ", " + selected.join(", ");
-            }
+            const data = await response.json();
 
-            typeWriter(crafted);
-            statusIndicator.textContent = "COMPLETE";
-            statusIndicator.style.color = "#00f3ff";
-            statusIndicator.style.borderColor = "#00f3ff";
-            craftBtn.disabled = false;
-            craftBtn.style.opacity = "1";
-        }, 800);
+            // Update UI with results
+            // For Refined Prompt, we keep it as text (it's usually short and plain)
+            typeWriter(data.refined_prompt, refinedContent, () => {
+                statusRefined.textContent = "COMPLETE";
+                statusRefined.style.color = "#00f3ff";
+                statusRefined.style.borderColor = "#00f3ff";
+            });
+
+            // For GPT Response, start immediately (no delay)
+            typeWriter(data.gpt_response, gptContent, () => {
+                statusGpt.textContent = "COMPLETE";
+                statusGpt.style.color = "#00f3ff";
+                statusGpt.style.borderColor = "#00f3ff";
+
+                // Render Markdown after typing is done
+                gptContent.innerHTML = marked.parse(data.gpt_response);
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
+            refinedContent.textContent = "Error processing request.";
+            gptContent.textContent = "Check console for details.";
+            statusRefined.textContent = "ERROR";
+            statusGpt.textContent = "ERROR";
+            statusRefined.style.color = "red";
+            statusRefined.style.borderColor = "red";
+        } finally {
+            setLoadingState(false);
+        }
     });
 
-    // Typewriter Effect
-    function typeWriter(text, i = 0) {
-        if (i < text.length) {
-            outputContent.textContent += text.charAt(i);
-            setTimeout(() => typeWriter(text, i + 1), 20); // Speed of typing
+    function setLoadingState(isLoading) {
+        craftBtn.disabled = isLoading;
+        craftBtn.style.opacity = isLoading ? "0.5" : "1";
+
+        if (isLoading) {
+            statusRefined.textContent = "PROCESSING...";
+            statusRefined.style.color = "#bc13fe";
+            statusRefined.style.borderColor = "#bc13fe";
+
+            statusGpt.textContent = "WAITING...";
+            statusGpt.style.color = "#bc13fe";
+            statusGpt.style.borderColor = "#bc13fe";
         }
     }
 
-    // Copy to Clipboard
-    copyBtn.addEventListener('click', () => {
-        const textToCopy = outputContent.textContent;
-        if (textToCopy && textToCopy !== "Waiting for input stream...") {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalIcon = copyBtn.innerHTML;
-                copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00f3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalIcon;
-                }, 2000);
-            });
+    // Typewriter Effect
+    function typeWriter(text, element, callback, i = 0) {
+        if (i < text.length) {
+            element.textContent += text.charAt(i);
+            // Faster typing: 1ms for long text, 10ms for short
+            const speed = text.length > 200 ? 1 : 10;
+            setTimeout(() => typeWriter(text, element, callback, i + 1), speed);
+        } else if (callback) {
+            callback();
         }
-    });
+    }
+
+    // Copy Functionality
+    setupCopy(copyRefinedBtn, refinedContent);
+    setupCopy(copyGptBtn, gptContent);
+
+    function setupCopy(btn, contentElement) {
+        btn.addEventListener('click', () => {
+            const textToCopy = contentElement.textContent;
+            if (textToCopy && textToCopy !== "Waiting for input stream..." && textToCopy !== "Error processing request.") {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalIcon = btn.innerHTML;
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00f3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    setTimeout(() => {
+                        btn.innerHTML = originalIcon;
+                    }, 2000);
+                });
+            }
+        });
+    }
 });
