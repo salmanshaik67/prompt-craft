@@ -63,8 +63,9 @@ GPT_RESPONSE: <insert answer here>"""},
 
         def generate():
             for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
+                if chunk.choices and len(chunk.choices) > 0:
+                    if chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
 
         return Response(generate(), mimetype='text/plain')
 
