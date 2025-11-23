@@ -117,7 +117,47 @@ h1.glitch {
     text-transform: uppercase;
     letter-spacing: 4px;
     position: relative;
-    text-shadow: 0 0 10px var(--primary-neon);
+    color: var(--primary-neon);
+    text-shadow: 0 0 10px var(--primary-neon), 0 0 20px var(--primary-neon);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+h1.glitch.typing::after {
+    content: '|';
+    animation: blink 0.7s infinite;
+    margin-left: 2px;
+}
+
+h1.glitch.typing-complete {
+    animation: final-glow 1s ease-in-out;
+}
+
+@keyframes blink {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes final-glow {
+    0% {
+        text-shadow: 0 0 10px var(--primary-neon), 0 0 20px var(--primary-neon);
+    }
+
+    50% {
+        text-shadow: 0 0 20px var(--primary-neon), 0 0 40px var(--primary-neon), 0 0 60px var(--secondary-neon);
+    }
+
+    100% {
+        text-shadow: 0 0 10px var(--primary-neon), 0 0 20px var(--primary-neon);
+    }
 }
 
 .subtitle {
@@ -146,6 +186,11 @@ textarea {
     resize: none;
     outline: none;
     transition: all 0.3s ease;
+}
+
+textarea:hover {
+    border-color: rgba(0, 243, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
 }
 
 textarea:focus {
@@ -185,6 +230,13 @@ textarea:focus {
     padding: 1.5rem;
     border: 1px solid var(--glass-border);
     position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.output-section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 243, 255, 0.1);
+    border-color: rgba(0, 243, 255, 0.3);
 }
 
 .output-header {
@@ -235,6 +287,45 @@ textarea:focus {
 
 .icon-btn:hover {
     color: var(--primary-neon);
+}
+
+/* Thinking Animation */
+.thinking-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 60px;
+}
+
+.thinking-dot {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px;
+    background-color: var(--primary-neon);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.thinking-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.thinking-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
+    }
 }
 
 /* Responsive */

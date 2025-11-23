@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -29,9 +29,9 @@ def craft_prompt():
         return jsonify({'error': 'No prompt provided'}), 400
 
     try:
-        # Optimization: Combine Refinement and Response into a single API call to reduce latency by 50%.
+        # Optimization: Stream the response to allow progressive disclosure
         # We also explicitly instruct the model to use Markdown for the response.
-        combined_response = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model="openai",
             messages=[
                 {"role": "system", "content": """You are an expert AI assistant. Your task is two-fold:
@@ -57,34 +57,16 @@ REFINED_PROMPT: <insert refined prompt here>
 |||SEPARATOR|||
 GPT_RESPONSE: <insert answer here>"""},
                 {"role": "user", "content": user_input}
-            ]
+            ],
+            stream=True
         )
-        
-        full_text = combined_response.choices[0].message.content.strip()
-        
-        # Parse the result
-        if "CLARIFICATION_REQUIRED:" in full_text:
-            question = full_text.replace("CLARIFICATION_REQUIRED:", "").strip()
-            return jsonify({
-                'status': 'clarification',
-                'question': question
-            })
-        elif "|||SEPARATOR|||" in full_text:
-            parts = full_text.split("|||SEPARATOR|||")
-            refined_prompt = parts[0].replace("REFINED_PROMPT:", "").strip()
-            gpt_response = parts[1].replace("GPT_RESPONSE:", "").strip()
-            return jsonify({
-                'status': 'success',
-                'refined_prompt': refined_prompt,
-                'gpt_response': gpt_response
-            })
-        else:
-            # Fallback
-            return jsonify({
-                'status': 'success',
-                'refined_prompt': "Refined version unavailable (Model format error)",
-                'gpt_response': full_text
-            })
+
+        def generate():
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+
+        return Response(generate(), mimetype='text/plain')
 
     except Exception as e:
         print(f"Error: {e}")
