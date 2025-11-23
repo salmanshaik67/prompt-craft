@@ -328,6 +328,45 @@ textarea:focus {
     }
 }
 
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.footer p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.creator-name {
+    background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+    font-family: var(--font-display);
+    letter-spacing: 2px;
+    position: relative;
+    display: inline-block;
+    animation: subtle-glow 3s ease-in-out infinite;
+}
+
+@keyframes subtle-glow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.3));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 10px rgba(188, 19, 254, 0.5));
+    }
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     h1.glitch {
