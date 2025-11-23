@@ -46,22 +46,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle Clarification Request
                 pendingPrompt = text; // Store original prompt
 
-                // Show question in the "Refined Prompt" area
-                statusRefined.textContent = "CLARIFICATION NEEDED";
+                // Show the original prompt in REFINED PROMPT area
+                statusRefined.textContent = "PENDING";
                 statusRefined.style.color = "#ff9e00";
                 statusRefined.style.borderColor = "#ff9e00";
+                refinedContent.textContent = text;
 
-                refinedContent.textContent = data.question;
+                // Show question in GPT RESPONSE area
+                statusGpt.textContent = "CLARIFICATION NEEDED";
+                statusGpt.style.color = "#ff9e00";
+                statusGpt.style.borderColor = "#ff9e00";
+                gptContent.textContent = data.question;
 
                 // Update UI to ask for reply
                 userPrompt.value = "";
                 userPrompt.placeholder = "Type your answer here...";
                 craftBtn.querySelector('.btn-text').textContent = "SUBMIT ANSWER";
-
-                statusGpt.textContent = "WAITING FOR INPUT";
-                statusGpt.style.color = "#ff9e00";
-                statusGpt.style.borderColor = "#ff9e00";
-                gptContent.textContent = "Please answer the question above to proceed.";
 
             } else {
                 // Handle Success
