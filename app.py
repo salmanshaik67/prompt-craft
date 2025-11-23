@@ -35,15 +35,24 @@ def craft_prompt():
             model="openai",
             messages=[
                 {"role": "system", "content": """You are an expert AI assistant. Your task is two-fold:
-1. Refine the user's prompt: Correct grammar, clarify intent, and make it precise.
-2. Answer the refined prompt: Provide a concise, direct answer.
+1. Analyze the user's prompt.
+2. IF the prompt is extremely vague (e.g., just "logo", "story", "help"), you MUST ask a single clarifying question to understand the user's intent.
+   Output format: CLARIFICATION_REQUIRED: <your question>
+3. IF the prompt is clear enough to proceed (even if not perfect):
+   a. Refine it: Correct grammar, clarify intent, and make it precise.
+   b. Answer it: Provide a concise, direct answer.
 
 IMPORTANT FORMATTING INSTRUCTIONS:
 - If the user asks for a list, you MUST provide a Markdown bulleted or numbered list.
 - If the user asks for a paragraph, provide a paragraph.
 - Use Markdown (bold, italics, lists) to make the output readable.
 
-Return your output EXACTLY in this format, using the special separator:
+Return your output EXACTLY in one of these two formats:
+
+Format A (Clarification Needed):
+CLARIFICATION_REQUIRED: <your question>
+
+Format B (Success):
 REFINED_PROMPT: <insert refined prompt here>
 |||SEPARATOR|||
 GPT_RESPONSE: <insert answer here>"""},
@@ -54,19 +63,28 @@ GPT_RESPONSE: <insert answer here>"""},
         full_text = combined_response.choices[0].message.content.strip()
         
         # Parse the result
-        if "|||SEPARATOR|||" in full_text:
+        if "CLARIFICATION_REQUIRED:" in full_text:
+            question = full_text.replace("CLARIFICATION_REQUIRED:", "").strip()
+            return jsonify({
+                'status': 'clarification',
+                'question': question
+            })
+        elif "|||SEPARATOR|||" in full_text:
             parts = full_text.split("|||SEPARATOR|||")
             refined_prompt = parts[0].replace("REFINED_PROMPT:", "").strip()
             gpt_response = parts[1].replace("GPT_RESPONSE:", "").strip()
+            return jsonify({
+                'status': 'success',
+                'refined_prompt': refined_prompt,
+                'gpt_response': gpt_response
+            })
         else:
-            # Fallback if model ignores format
-            refined_prompt = "Refined version unavailable (Model format error)"
-            gpt_response = full_text
-
-        return jsonify({
-            'refined_prompt': refined_prompt,
-            'gpt_response': gpt_response
-        })
+            # Fallback
+            return jsonify({
+                'status': 'success',
+                'refined_prompt': "Refined version unavailable (Model format error)",
+                'gpt_response': full_text
+            })
 
     except Exception as e:
         print(f"Error: {e}")

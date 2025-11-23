@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusGpt = document.getElementById('statusGpt');
     const copyGptBtn = document.getElementById('copyGptBtn');
 
+    let pendingPrompt = null; // Store original prompt if clarification is needed
+
     craftBtn.addEventListener('click', async () => {
         const text = userPrompt.value.trim();
         if (!text) return;
@@ -19,13 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
         refinedContent.textContent = "";
         gptContent.textContent = "";
 
+        // Prepare payload: if we are replying to a clarification, combine prompts
+        let payloadPrompt = text;
+        if (pendingPrompt) {
+            payloadPrompt = pendingPrompt + " " + text;
+        }
+
         try {
             const response = await fetch('/craft', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: text }),
+                body: JSON.stringify({ prompt: payloadPrompt }),
             });
 
             if (!response.ok) {
@@ -34,23 +42,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
-            // Update UI with results
-            // For Refined Prompt, we keep it as text (it's usually short and plain)
-            typeWriter(data.refined_prompt, refinedContent, () => {
-                statusRefined.textContent = "COMPLETE";
-                statusRefined.style.color = "#00f3ff";
-                statusRefined.style.borderColor = "#00f3ff";
-            });
+            if (data.status === 'clarification') {
+                // Handle Clarification Request
+                pendingPrompt = text; // Store original prompt
 
-            // For GPT Response, start immediately (no delay)
-            typeWriter(data.gpt_response, gptContent, () => {
-                statusGpt.textContent = "COMPLETE";
-                statusGpt.style.color = "#00f3ff";
-                statusGpt.style.borderColor = "#00f3ff";
+                // Show question in the "Refined Prompt" area
+                statusRefined.textContent = "CLARIFICATION NEEDED";
+                statusRefined.style.color = "#ff9e00";
+                statusRefined.style.borderColor = "#ff9e00";
 
-                // Render Markdown after typing is done
-                gptContent.innerHTML = marked.parse(data.gpt_response);
-            });
+                refinedContent.textContent = data.question;
+
+                // Update UI to ask for reply
+                userPrompt.value = "";
+                userPrompt.placeholder = "Type your answer here...";
+                craftBtn.querySelector('.btn-text').textContent = "SUBMIT ANSWER";
+
+                statusGpt.textContent = "WAITING FOR INPUT";
+                statusGpt.style.color = "#ff9e00";
+                statusGpt.style.borderColor = "#ff9e00";
+                gptContent.textContent = "Please answer the question above to proceed.";
+
+            } else {
+                // Handle Success
+                pendingPrompt = null; // Reset
+                userPrompt.value = "";
+                userPrompt.placeholder = "Enter your raw idea here...";
+                craftBtn.querySelector('.btn-text').textContent = "INITIALIZE CRAFTING";
+
+                // Update UI with results
+                // For Refined Prompt
+                typeWriter(data.refined_prompt, refinedContent, () => {
+                    statusRefined.textContent = "COMPLETE";
+                    statusRefined.style.color = "#00f3ff";
+                    statusRefined.style.borderColor = "#00f3ff";
+                });
+
+                // For GPT Response
+                typeWriter(data.gpt_response, gptContent, () => {
+                    statusGpt.textContent = "COMPLETE";
+                    statusGpt.style.color = "#00f3ff";
+                    statusGpt.style.borderColor = "#00f3ff";
+
+                    // Render Markdown after typing is done
+                    gptContent.innerHTML = marked.parse(data.gpt_response);
+                });
+            }
 
         } catch (error) {
             console.error('Error:', error);
@@ -60,6 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
             statusGpt.textContent = "ERROR";
             statusRefined.style.color = "red";
             statusRefined.style.borderColor = "red";
+            statusGpt.style.color = "red";
+            statusGpt.style.borderColor = "red";
+            pendingPrompt = null; // Reset on error
         } finally {
             setLoadingState(false);
         }
